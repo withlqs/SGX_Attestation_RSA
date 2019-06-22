@@ -60,15 +60,6 @@ sgx_enclave_id_t e3_enclave_id = 0;
 #define ENCLAVE2_PATH "libenclave2.so"
 #define ENCLAVE3_PATH "libenclave3.so"
 
-void waitForKeyPress()
-{
-    char ch;
-    int temp;
-    printf("\n\nHit a key....\n");
-    temp = scanf_s("%c", &ch);
-    (void) temp;
-}
-
 uint32_t load_enclaves()
 {
     uint32_t enclave_temp_no;
@@ -440,8 +431,6 @@ int _tmain(int argc, _TCHAR* argv[])
     sgx_destroy_enclave(e1_enclave_id);
     sgx_destroy_enclave(e2_enclave_id);
     sgx_destroy_enclave(e3_enclave_id);
-
-    waitForKeyPress();
 
     return 0;
 }
