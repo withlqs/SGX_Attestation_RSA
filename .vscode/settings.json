@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "errno.h": "c",
-        "enclave1_u.h": "c",
-        "datatypes.h": "c",
-        "dh_session_protocol.h": "c"
-    }
-}
