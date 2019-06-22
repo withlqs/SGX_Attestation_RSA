@@ -332,11 +332,17 @@ ATTESTATION_STATUS send_request_receive_response(sgx_enclave_id_t src_enclave_id
     req_message->session_id = session_info->session_id;
 
     //Prepare the request message with the encrypted payload
-    status = sgx_rijndael128GCM_encrypt(&session_info->active.AEK, (uint8_t*)inp_buff, data2encrypt_length,
-                reinterpret_cast<uint8_t *>(&(req_message->message_aes_gcm_data.payload)),
-                reinterpret_cast<uint8_t *>(&(req_message->message_aes_gcm_data.reserved)),
-                sizeof(req_message->message_aes_gcm_data.reserved), plaintext, plaintext_length, 
-                &(req_message->message_aes_gcm_data.payload_tag));
+    status = sgx_rijndael128GCM_encrypt(
+        &session_info->active.AEK, //key
+        (uint8_t*)inp_buff, //input
+        data2encrypt_length, //input length
+        reinterpret_cast<uint8_t *>(&(req_message->message_aes_gcm_data.payload)), //destination
+        reinterpret_cast<uint8_t *>(&(req_message->message_aes_gcm_data.reserved)), //IV
+        sizeof(req_message->message_aes_gcm_data.reserved), //IV len
+        plaintext, //auth
+        plaintext_length, //auth length
+        &(req_message->message_aes_gcm_data.payload_tag) //MAC
+    );
 
     if(SGX_SUCCESS != status)
     {
@@ -365,9 +371,17 @@ ATTESTATION_STATUS send_request_receive_response(sgx_enclave_id_t src_enclave_id
     memset(resp_message, 0, sizeof(secure_message_t)+ max_out_buff_size);
 
     //Ocall to send the request to the Destination Enclave and get the response message back
-    status = send_request_ocall(&retstatus, src_enclave_id, dest_enclave_id, req_message,
-                                (sizeof(secure_message_t)+ inp_buff_len), max_out_buff_size,
-                                resp_message, (sizeof(secure_message_t)+ max_out_buff_size));
+    status = send_request_ocall(
+        &retstatus,
+        src_enclave_id,
+        dest_enclave_id,
+        req_message,
+        (sizeof(secure_message_t)+ inp_buff_len),
+        max_out_buff_size,
+        resp_message,
+        (sizeof(secure_message_t)+ max_out_buff_size)
+    );
+
     if (status == SGX_SUCCESS)
     {
         if ((ATTESTATION_STATUS)retstatus != SUCCESS)
@@ -447,12 +461,13 @@ ATTESTATION_STATUS send_request_receive_response(sgx_enclave_id_t src_enclave_id
 }
 
 //Process the request from the Source enclave and send the response message back to the Source enclave
-ATTESTATION_STATUS generate_response(sgx_enclave_id_t src_enclave_id,
-                                     secure_message_t* req_message,
-                                     size_t req_message_size,
-                                     size_t max_payload_size,
-                                     secure_message_t* resp_message,
-                                     size_t resp_message_size)
+ATTESTATION_STATUS generate_response(
+    sgx_enclave_id_t src_enclave_id,
+    secure_message_t* req_message,
+    size_t req_message_size,
+    size_t max_payload_size,
+    secure_message_t* resp_message,
+    size_t resp_message_size)
 {
     const uint8_t* plaintext;
     uint32_t plaintext_length;

@@ -38,6 +38,12 @@
 #include "sgx_dh.h"
 #include <map>
 
+#include <stdio.h>
+
+void puts_ocall(const char* str) {
+	puts(str);
+}
+
 std::map<sgx_enclave_id_t, uint32_t>g_enclave_id_map;
 
 //Makes an sgx_ecall to the destination enclave to get session id and message1
@@ -112,7 +118,14 @@ ATTESTATION_STATUS exchange_report_ocall(sgx_enclave_id_t src_enclave_id, sgx_en
 }
 
 //Make an sgx_ecall to the destination enclave function that generates the actual response
-ATTESTATION_STATUS send_request_ocall(sgx_enclave_id_t src_enclave_id, sgx_enclave_id_t dest_enclave_id,secure_message_t* req_message, size_t req_message_size, size_t max_payload_size, secure_message_t* resp_message, size_t resp_message_size)
+ATTESTATION_STATUS send_request_ocall(
+	sgx_enclave_id_t src_enclave_id,
+	sgx_enclave_id_t dest_enclave_id,
+	secure_message_t* req_message,
+	size_t req_message_size,
+	size_t max_payload_size,
+	secure_message_t* resp_message,
+	size_t resp_message_size)
 {
 	uint32_t status = 0;
     sgx_status_t ret = SGX_SUCCESS;
