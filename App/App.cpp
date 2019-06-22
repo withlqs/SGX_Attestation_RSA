@@ -122,7 +122,7 @@ int _tmain(int argc, _TCHAR* argv[])
         if (status == SGX_SUCCESS && ret_status == 0) {
             printf("E1->E2 session, ok.\n");
         } else {
-            exit();
+            exit(0);
         }
 
         //Test Enclave to Enclave call between Enclave1(Source) and Enclave2(Destination)
