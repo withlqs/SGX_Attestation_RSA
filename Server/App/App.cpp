@@ -4,6 +4,10 @@
 #include "../Enclave2/Enclave2_u.h"
 #include "sgx_eid.h"
 #include "sgx_urts.h"
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/shm.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
@@ -41,8 +45,84 @@ uint32_t load_enclaves()
     return SGX_SUCCESS;
 }
 
-int _tmain(int argc, _TCHAR *argv[])
+struct shared_use_st
 {
+	int written;//作为一个标志，非0：表示可读，0表示可写
+	unsigned char text[2000];//记录写入和读取的文本
+};
+
+shared_use_st* create_shm(int key_num, int *shmid) {
+	void *shm = NULL;
+	struct shared_use_st *shared;
+	(*shmid) = shmget((key_t)key_num, sizeof(struct shared_use_st), 0666|IPC_CREAT);
+	if((*shmid) == -1)
+	{
+		fprintf(stderr, "shmget failed\n");
+		exit(EXIT_FAILURE);
+	}
+	shm = shmat((*shmid), 0, 0);
+	if(shm == (void*)-1)
+	{
+		fprintf(stderr, "shmat failed\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("\nMemory attached at %X\n", static_cast<int>(reinterpret_cast<std::uintptr_t>(shm)));
+
+	shared = (struct shared_use_st*)shm;
+    shared->written = 1;
+    return shared;
+}
+
+void send_shm(
+    shared_use_st *shm,
+    unsigned char* msg,
+    uint32_t data_size,
+    sgx_rsa3072_public_key_t *pubkey,
+    sgx_rsa3072_signature_t *sign) {
+
+    int running = 1;
+    bool put = true;
+
+	while(running) {
+		if (shm->written == 1) {
+			shm->written = 0;
+            shm->text[0] = 'S';
+            memcpy(shm->text+1, &data_size, sizeof(uint32_t));
+            memcpy(shm->text+1+sizeof(uint32_t), msg, data_size);
+            memcpy(shm->text+1+sizeof(uint32_t)+data_size, pubkey, sizeof(sgx_rsa3072_public_key_t));
+            memcpy(shm->text+1+sizeof(uint32_t)+data_size+sizeof(sgx_rsa3072_public_key_t), sign, sizeof(sgx_rsa3072_signature_t));
+            shm->written = 1;
+            return;
+		} else {
+			sleep(1);
+            if (put) {
+                puts("send_shm: wait written == 1");
+                put = false;
+            }
+        }
+	}
+}
+
+void receive_shm(shared_use_st *shm) {
+    int running = 1;
+    bool put = true;
+	while(running) {
+		if (shm->written == 1 && shm->text[0] == 'C') {
+                shm->written == 0;
+                shm->text[0] == '\0';
+                shm->written == 1;
+                return;
+		} else {
+			sleep(1);
+            if (put) {
+                puts("receive_shm: wait written == 1");
+                put = false;
+            }
+        }
+	}
+}
+
+int _tmain(int argc, _TCHAR *argv[]) {
     sgx_status_t status;
 
     UNUSED(argc);
@@ -62,6 +142,31 @@ int _tmain(int argc, _TCHAR *argv[])
     Enclave1_gen_pubkey_and_sign(e1_enclave_id, &status, (const uint8_t*)p_data, sizeof(char)*12, &public_key, signature);
 
     sgx_destroy_enclave(e1_enclave_id);
+
+	struct shared_use_st *shared;
+    int shmkey = 2333, shmid;
+    shared = create_shm(shmkey, &shmid);
+    receive_shm(shared);
+    send_shm(
+        shared,
+        (unsigned char*)p_data,
+        sizeof(char)*12,
+        &public_key,
+        signature
+    );
+
+	if(shmdt((void*)shared) == -1)
+	{
+		fprintf(stderr, "shmdt failed\n");
+		exit(EXIT_FAILURE);
+	}
+
+    receive_shm(shared);
+	if(shmctl(shmid, IPC_RMID, 0) == -1)
+	{
+		fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+		exit(EXIT_FAILURE);
+	}
 
     return 0;
 }
