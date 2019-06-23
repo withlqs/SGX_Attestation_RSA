@@ -47,7 +47,7 @@ uint32_t load_enclaves()
 
 struct shared_use_st
 {
-	int written;
+	int written;//flag: 1: writable
 	unsigned char text[2000];
 };
 

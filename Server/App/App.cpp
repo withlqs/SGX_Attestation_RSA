@@ -47,8 +47,8 @@ uint32_t load_enclaves()
 
 struct shared_use_st
 {
-	int written;//作为一个标志，非0：表示可读，0表示可写
-	unsigned char text[2000];//记录写入和读取的文本
+	int written;//flag: 1: writable
+	unsigned char text[2000];
 };
 
 shared_use_st* create_shm(int key_num, int *shmid) {
