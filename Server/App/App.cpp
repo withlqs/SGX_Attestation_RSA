@@ -139,9 +139,9 @@ int _tmain(int argc, _TCHAR *argv[]) {
     printf("Enclave1 - EnclaveID %" PRIx64 "\n", e1_enclave_id);
 
     sgx_rsa3072_public_key_t public_key;
-    char p_data[12] = "23333333333";
+    char p_data[] = "233333";
     sgx_rsa3072_signature_t *signature = (sgx_rsa3072_signature_t*)malloc(sizeof(sgx_rsa3072_signature_t));
-    Enclave1_gen_pubkey_and_sign(e1_enclave_id, &status, (const uint8_t*)p_data, sizeof(char)*12, &public_key, signature);
+    Enclave1_gen_pubkey_and_sign(e1_enclave_id, &status, (const uint8_t*)p_data, sizeof(p_data), &public_key, signature);
 
     sgx_destroy_enclave(e1_enclave_id);
 
@@ -152,7 +152,7 @@ int _tmain(int argc, _TCHAR *argv[]) {
     send_shm(
         shared,
         (unsigned char*)p_data,
-        sizeof(char)*12,
+        sizeof(p_data),
         &public_key,
         signature
     );
