@@ -41,7 +41,194 @@
 
 #define UNUSED(val) (void)(val)
 
+sgx_status_t gen_pubkey_and_sign(
+    const uint8_t* p_data,
+    uint32_t data_size,
+    sgx_rsa3072_public_key_t* public_key,
+    sgx_rsa3072_signature_t *p_signature) {
+
+    int n_byte_size = SGX_RSA3072_KEY_SIZE;
+    int e_byte_size = SGX_RSA3072_PUB_EXP_SIZE;
+    unsigned char *p_n = (unsigned char *)malloc(n_byte_size);
+    unsigned char *p_d = (unsigned char *)malloc(SGX_RSA3072_PRI_EXP_SIZE);
+    unsigned char p_e[] = {0x01, 0x00, 0x01, 0x00}; //65537
+    unsigned char *p_p = (unsigned char *)malloc(n_byte_size);
+    unsigned char *p_q = (unsigned char *)malloc(n_byte_size);
+    unsigned char *p_dmp1 = (unsigned char *)malloc(n_byte_size);
+    unsigned char *p_dmq1 = (unsigned char *)malloc(n_byte_size);
+    unsigned char *p_iqmp = (unsigned char *)malloc(n_byte_size);
+    sgx_rsa3072_key_t *private_key = (sgx_rsa3072_key_t*)malloc(sizeof(sgx_rsa3072_key_t));
+
+    sgx_status_t status = SGX_SUCCESS;
+    status = sgx_create_rsa_key_pair(
+        n_byte_size,
+        e_byte_size,
+        p_n,
+        p_d,
+        p_e,
+        p_p,
+        p_q,
+        p_dmp1,
+        p_dmq1,
+        p_iqmp
+    );
+    if (status != SGX_SUCCESS) {
+        if (status == SGX_ERROR_INVALID_PARAMETER) {
+            puts_ocall("SGX_ERROR_INVALID_PARAMETER");
+            if (data_size == 0) {
+                puts_ocall("datasize == 0");
+            }
+            if (p_data == NULL) {
+                puts_ocall("p_data == NULL");
+            }
+            if ((&private_key) == NULL) {
+                puts_ocall("private_key == NULL");
+            }
+            if (p_signature == NULL) {
+                puts_ocall("p_sign == NULL");
+            }
+        } else if (status == SGX_ERROR_OUT_OF_MEMORY) {
+            puts_ocall("SGX_ERROR_OUT_OF_MEMORY");
+        } else if (status == SGX_ERROR_UNEXPECTED) {
+            puts_ocall("SGX_ERROR_UNEXPECTED");
+        }
+    } else {
+        puts_ocall("GenKey Success!");
+    }
+
+	memcpy(private_key->mod, p_n, n_byte_size);
+    memcpy(private_key->d, p_d, n_byte_size);
+	memcpy(private_key->e, p_e, e_byte_size);
+
+	memcpy(public_key->mod, p_n, n_byte_size);
+	memcpy(public_key->exp, p_e, e_byte_size);
+
+    free(p_n);
+	free(p_d);
+	free(p_p);
+	free(p_q);
+	free(p_dmp1);
+	free(p_dmq1);
+	free(p_iqmp);
+
+    status = SGX_SUCCESS;
+    status = sgx_rsa3072_sign(
+        p_data,
+        data_size,
+        private_key,
+        p_signature
+    );
+    if (status != SGX_SUCCESS) {
+        if (status == SGX_ERROR_INVALID_PARAMETER) {
+            puts_ocall("SGX_ERROR_INVALID_PARAMETER");
+            if (data_size == 0) {
+                puts_ocall("datasize == 0");
+            }
+            if (p_data == NULL) {
+                puts_ocall("p_data == NULL");
+            }
+            if ((&private_key) == NULL) {
+                puts_ocall("private_key == NULL");
+            }
+            if (p_signature == NULL) {
+                puts_ocall("p_sign == NULL");
+            }
+        } else if (status == SGX_ERROR_OUT_OF_MEMORY) {
+            puts_ocall("SGX_ERROR_OUT_OF_MEMORY");
+        } else if (status == SGX_ERROR_UNEXPECTED) {
+            puts_ocall("SGX_ERROR_UNEXPECTED");
+        }
+    } else {
+        puts_ocall("Sign Success!");
+    }
+}
+
+// sgx_rsa3072_key_t private_key;
+
+// sgx_status_t rsa_gen_public_key(sgx_rsa3072_public_key_t* public_key) {
+
+//     int n_byte_size = SGX_RSA3072_KEY_SIZE;
+//     int e_byte_size = SGX_RSA3072_PUB_EXP_SIZE;
+//     unsigned char *p_n = (unsigned char *)malloc(n_byte_size);
+//     unsigned char *p_d = (unsigned char *)malloc(SGX_RSA3072_PRI_EXP_SIZE);
+//     unsigned char p_e[] = {0x00, 0x01, 0x00, 0x01};
+//     unsigned char *p_p = (unsigned char *)malloc(n_byte_size);
+//     unsigned char *p_q = (unsigned char *)malloc(n_byte_size);
+//     unsigned char *p_dmp1 = (unsigned char *)malloc(n_byte_size);
+//     unsigned char *p_dmq1 = (unsigned char *)malloc(n_byte_size);
+//     unsigned char *p_iqmp = (unsigned char *)malloc(n_byte_size);
+
+//     sgx_status_t rsa_create_status = SGX_SUCCESS;
+//     sgx_create_rsa_key_pair(
+//         n_byte_size,
+//         e_byte_size,
+//         p_n,
+//         p_d,
+//         p_e,
+//         p_p,
+//         p_q,
+//         p_dmp1,
+//         p_dmq1,
+//         p_iqmp
+//     );
+//     if (rsa_create_status != SGX_SUCCESS) {
+//         puts_ocall("warning!!!!!");
+//     } else {
+//         puts_ocall("fucking!!!!!");
+//     }
+
+// 	memcpy(private_key.mod, p_n, n_byte_size);
+//     memcpy(private_key.d, p_d, n_byte_size);
+// 	memcpy(private_key.e, p_e, e_byte_size);
+
+// 	memcpy(public_key->mod, p_n, n_byte_size);
+// 	memcpy(public_key->exp, p_e, e_byte_size);
+
+//     free(p_n);
+// 	free(p_d);
+// 	free(p_p);
+// 	free(p_q);
+// 	free(p_dmp1);
+// 	free(p_dmq1);
+// 	free(p_iqmp);
+// }
+
+// sgx_status_t rsa_sign(const uint8_t* p_data, uint32_t data_size, sgx_rsa3072_signature_t *p_signature) {
+//     sgx_status_t status = sgx_rsa3072_sign(
+//         p_data,
+//         data_size,
+//         &private_key,
+//         p_signature
+//     );
+//     if (status != SGX_SUCCESS) {
+//         if (status == SGX_ERROR_INVALID_PARAMETER) {
+//             puts_ocall("SGX_ERROR_INVALID_PARAMETER");
+//             if (data_size == 0) {
+//                 puts_ocall("datasize == 0");
+//             }
+//             if (p_data == NULL) {
+//                 puts_ocall("p_data == NULL");
+//             }
+//             if ((&private_key) == NULL) {
+//                 puts_ocall("private_key == NULL");
+//             }
+//             if (p_signature == NULL) {
+//                 puts_ocall("p_sign == NULL");
+//             }
+//         } else if (status == SGX_ERROR_OUT_OF_MEMORY) {
+//             puts_ocall("SGX_ERROR_OUT_OF_MEMORY");
+//         } else if (status == SGX_ERROR_UNEXPECTED) {
+//             puts_ocall("SGX_ERROR_UNEXPECTED");
+//         }
+//     } else {
+//         puts_ocall("fucking!!!!!");
+//     }
+// }
+
+
 std::map<sgx_enclave_id_t, dh_session_t>g_src_session_info_map;
+
+
 
 static uint32_t e1_foo1_wrapper(ms_in_msg_exchange_t *ms, size_t param_lenth, char** resp_buffer, size_t* resp_length);
 

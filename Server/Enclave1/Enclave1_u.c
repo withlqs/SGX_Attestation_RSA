@@ -25,10 +25,13 @@ typedef struct ms_test_close_session_t {
 	sgx_enclave_id_t ms_dest_enclave_id;
 } ms_test_close_session_t;
 
-typedef struct ms_rsa_gen_public_key_t {
+typedef struct ms_gen_pubkey_and_sign_t {
 	sgx_status_t ms_retval;
+	const uint8_t* ms_p_data;
+	uint32_t ms_data_size;
 	sgx_rsa3072_public_key_t* ms_public_key;
-} ms_rsa_gen_public_key_t;
+	sgx_rsa3072_signature_t* ms_p_signature;
+} ms_gen_pubkey_and_sign_t;
 
 typedef struct ms_session_request_t {
 	uint32_t ms_retval;
@@ -195,11 +198,14 @@ sgx_status_t Enclave1_test_close_session(sgx_enclave_id_t eid, uint32_t* retval,
 	return status;
 }
 
-sgx_status_t Enclave1_rsa_gen_public_key(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_rsa3072_public_key_t* public_key)
+sgx_status_t Enclave1_gen_pubkey_and_sign(sgx_enclave_id_t eid, sgx_status_t* retval, const uint8_t* p_data, uint32_t data_size, sgx_rsa3072_public_key_t* public_key, sgx_rsa3072_signature_t* p_signature)
 {
 	sgx_status_t status;
-	ms_rsa_gen_public_key_t ms;
+	ms_gen_pubkey_and_sign_t ms;
+	ms.ms_p_data = p_data;
+	ms.ms_data_size = data_size;
 	ms.ms_public_key = public_key;
+	ms.ms_p_signature = p_signature;
 	status = sgx_ecall(eid, 4, &ocall_table_Enclave1, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

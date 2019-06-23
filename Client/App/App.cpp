@@ -38,6 +38,15 @@ uint32_t load_enclaves()
     enclave_temp_no++;
     g_enclave_id_map.insert(std::pair<sgx_enclave_id_t, uint32_t>(e1_enclave_id, enclave_temp_no));
 
+    ret = sgx_create_enclave(ENCLAVE2_PATH, SGX_DEBUG_FLAG, NULL, NULL, &e2_enclave_id, NULL);
+    if (ret != SGX_SUCCESS)
+    {
+        return ret;
+    }
+
+    enclave_temp_no++;
+    g_enclave_id_map.insert(std::pair<sgx_enclave_id_t, uint32_t>(e2_enclave_id, enclave_temp_no));
+
     return SGX_SUCCESS;
 }
 
@@ -51,27 +60,63 @@ int _tmain(int argc, _TCHAR *argv[])
 
     if (load_enclaves() != SGX_SUCCESS)
     {
-        printf("Load Enclave Failure\n");
+        printf("\nLoad Enclave Failure");
         exit(-1);
     }
 
     printf("Enclave1 - EnclaveID %" PRIx64 "\n", e1_enclave_id);
+    printf("Enclave2 - EnclaveID %" PRIx64 "\n", e2_enclave_id);
 
     //Test Create session between Enclave1(Source) and Enclave2(Destination)
-    // status = Enclave1_test_create_session(e1_enclave_id, &ret_status, e1_enclave_id, e2_enclave_id);
-    // if (status == SGX_SUCCESS && ret_status == 0)
-    // {
-    //     printf("open session, ok.\n");
-    // }
-    // else
-    // {
-    //     printf("open session, failed.\n");
-    //     exit(-1);
-    // }
-    sgx_rsa3072_public_key_t public_key;
-    Enclave1_rsa_gen_public_key(e1_enclave_id, &status, &public_key);
+    status = Enclave1_test_create_session(e1_enclave_id, &ret_status, e1_enclave_id, e2_enclave_id);
+    if (status == SGX_SUCCESS && ret_status == 0)
+    {
+        printf("open session, ok.\n");
+    }
+    else
+    {
+        printf("open session, failed.\n");
+        exit(-1);
+    }
+
+    //Test Enclave to Enclave call between Enclave1(Source) and Enclave2(Destination)
+    status = Enclave1_test_enclave_to_enclave_call(e1_enclave_id, &ret_status, e1_enclave_id, e2_enclave_id);
+    if (status == SGX_SUCCESS && ret_status == 0)
+    {
+        printf("E1 call E2, ok.\n");
+    }
+    else
+    {
+        printf("E1 call E2, failed.\n");
+        exit(-1);
+    }
+
+    //Test message exchange between Enclave1(Source) and Enclave2(Destination)
+    status = Enclave1_test_message_exchange(e1_enclave_id, &ret_status, e1_enclave_id, e2_enclave_id);
+    if (status == SGX_SUCCESS && ret_status == 0)
+    {
+        printf("E1 to E2, ok.\n");
+    }
+    else
+    {
+        printf("E1 to E2, failed.\n");
+        exit(-1);
+    }
+
+    //Test Closing Session between Enclave1(Source) and Enclave2(Destination)
+    status = Enclave1_test_close_session(e1_enclave_id, &ret_status, e1_enclave_id, e2_enclave_id);
+    if (status == SGX_SUCCESS && ret_status == 0)
+    {
+        printf("close session, ok.\n");
+    }
+    else
+    {
+        printf("close session, failed.\n");
+        exit(-1);
+    }
 
     sgx_destroy_enclave(e1_enclave_id);
+    sgx_destroy_enclave(e2_enclave_id);
 
     return 0;
 }

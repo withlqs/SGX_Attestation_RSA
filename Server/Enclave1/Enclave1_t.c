@@ -51,10 +51,13 @@ typedef struct ms_test_close_session_t {
 	sgx_enclave_id_t ms_dest_enclave_id;
 } ms_test_close_session_t;
 
-typedef struct ms_rsa_gen_public_key_t {
+typedef struct ms_gen_pubkey_and_sign_t {
 	sgx_status_t ms_retval;
+	const uint8_t* ms_p_data;
+	uint32_t ms_data_size;
 	sgx_rsa3072_public_key_t* ms_public_key;
-} ms_rsa_gen_public_key_t;
+	sgx_rsa3072_signature_t* ms_p_signature;
+} ms_gen_pubkey_and_sign_t;
 
 typedef struct ms_session_request_t {
 	uint32_t ms_retval;
@@ -196,26 +199,53 @@ static sgx_status_t SGX_CDECL sgx_test_close_session(void* pms)
 	return status;
 }
 
-static sgx_status_t SGX_CDECL sgx_rsa_gen_public_key(void* pms)
+static sgx_status_t SGX_CDECL sgx_gen_pubkey_and_sign(void* pms)
 {
-	CHECK_REF_POINTER(pms, sizeof(ms_rsa_gen_public_key_t));
+	CHECK_REF_POINTER(pms, sizeof(ms_gen_pubkey_and_sign_t));
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
-	ms_rsa_gen_public_key_t* ms = SGX_CAST(ms_rsa_gen_public_key_t*, pms);
+	ms_gen_pubkey_and_sign_t* ms = SGX_CAST(ms_gen_pubkey_and_sign_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
+	const uint8_t* _tmp_p_data = ms->ms_p_data;
+	uint32_t _tmp_data_size = ms->ms_data_size;
+	size_t _len_p_data = _tmp_data_size;
+	uint8_t* _in_p_data = NULL;
 	sgx_rsa3072_public_key_t* _tmp_public_key = ms->ms_public_key;
 	size_t _len_public_key = 388;
 	sgx_rsa3072_public_key_t* _in_public_key = NULL;
+	sgx_rsa3072_signature_t* _tmp_p_signature = ms->ms_p_signature;
+	size_t _len_p_signature = 384;
+	sgx_rsa3072_signature_t* _in_p_signature = NULL;
 
+	CHECK_UNIQUE_POINTER(_tmp_p_data, _len_p_data);
 	CHECK_UNIQUE_POINTER(_tmp_public_key, _len_public_key);
+	CHECK_UNIQUE_POINTER(_tmp_p_signature, _len_p_signature);
 
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
 
+	if (_tmp_p_data != NULL && _len_p_data != 0) {
+		if ( _len_p_data % sizeof(*_tmp_p_data) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_p_data = (uint8_t*)malloc(_len_p_data);
+		if (_in_p_data == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_p_data, _len_p_data, _tmp_p_data, _len_p_data)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
 	if (_tmp_public_key != NULL && _len_public_key != 0) {
 		if ((_in_public_key = (sgx_rsa3072_public_key_t*)malloc(_len_public_key)) == NULL) {
 			status = SGX_ERROR_OUT_OF_MEMORY;
@@ -224,17 +254,33 @@ static sgx_status_t SGX_CDECL sgx_rsa_gen_public_key(void* pms)
 
 		memset((void*)_in_public_key, 0, _len_public_key);
 	}
+	if (_tmp_p_signature != NULL && _len_p_signature != 0) {
+		if ((_in_p_signature = (sgx_rsa3072_signature_t*)malloc(_len_p_signature)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
-	ms->ms_retval = rsa_gen_public_key(_in_public_key);
+		memset((void*)_in_p_signature, 0, _len_p_signature);
+	}
+
+	ms->ms_retval = gen_pubkey_and_sign((const uint8_t*)_in_p_data, _tmp_data_size, _in_public_key, _in_p_signature);
 	if (_in_public_key) {
 		if (memcpy_s(_tmp_public_key, _len_public_key, _in_public_key, _len_public_key)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
 	}
+	if (_in_p_signature) {
+		if (memcpy_s(_tmp_p_signature, _len_p_signature, _in_p_signature, _len_p_signature)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
 
 err:
+	if (_in_p_data) free(_in_p_data);
 	if (_in_public_key) free(_in_public_key);
+	if (_in_p_signature) free(_in_p_signature);
 	return status;
 }
 
@@ -454,7 +500,7 @@ SGX_EXTERNC const struct {
 		{(void*)(uintptr_t)sgx_test_enclave_to_enclave_call, 0},
 		{(void*)(uintptr_t)sgx_test_message_exchange, 0},
 		{(void*)(uintptr_t)sgx_test_close_session, 0},
-		{(void*)(uintptr_t)sgx_rsa_gen_public_key, 0},
+		{(void*)(uintptr_t)sgx_gen_pubkey_and_sign, 0},
 		{(void*)(uintptr_t)sgx_session_request, 0},
 		{(void*)(uintptr_t)sgx_exchange_report, 0},
 		{(void*)(uintptr_t)sgx_generate_response, 0},
