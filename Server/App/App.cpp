@@ -92,6 +92,7 @@ void send_shm(
             memcpy(shm->text+1+sizeof(uint32_t)+data_size, pubkey, sizeof(sgx_rsa3072_public_key_t));
             memcpy(shm->text+1+sizeof(uint32_t)+data_size+sizeof(sgx_rsa3072_public_key_t), sign, sizeof(sgx_rsa3072_signature_t));
             shm->written = 1;
+            puts("send_shm: success");
             return;
 		} else {
 			sleep(1);
@@ -108,9 +109,10 @@ void receive_shm(shared_use_st *shm) {
     bool put = true;
 	while(running) {
 		if (shm->written == 1 && shm->text[0] == 'C') {
-                shm->written == 0;
-                shm->text[0] == '\0';
-                shm->written == 1;
+                shm->written = 0;
+                shm->text[0] = '\0';
+                shm->written = 1;
+                puts("receive_shm: success");
                 return;
 		} else {
 			sleep(1);
@@ -155,13 +157,15 @@ int _tmain(int argc, _TCHAR *argv[]) {
         signature
     );
 
+    receive_shm(shared);
+    sleep(2);
+
 	if(shmdt((void*)shared) == -1)
 	{
 		fprintf(stderr, "shmdt failed\n");
 		exit(EXIT_FAILURE);
 	}
 
-    receive_shm(shared);
 	if(shmctl(shmid, IPC_RMID, 0) == -1)
 	{
 		fprintf(stderr, "shmctl(IPC_RMID) failed\n");

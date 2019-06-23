@@ -41,6 +41,27 @@
 
 #define UNUSED(val) (void)(val)
 
+sgx_status_t rsa_verify(
+    const uint8_t *p_data,
+	uint32_t data_size,						
+	const sgx_rsa3072_public_key_t *p_public,
+	const sgx_rsa3072_signature_t *p_signature,
+	sgx_rsa_result_t *p_result) {
+
+    sgx_status_t status = sgx_rsa3072_verify(
+        p_data,
+        data_size,
+        p_public,
+        p_signature,
+        p_result
+    );
+
+    if (status != SGX_SUCCESS) {
+        puts_ocall("rsa_verify: warning");
+    }
+
+}
+
 std::map<sgx_enclave_id_t, dh_session_t>g_src_session_info_map;
 
 static uint32_t e1_foo1_wrapper(ms_in_msg_exchange_t *ms, size_t param_lenth, char** resp_buffer, size_t* resp_length);

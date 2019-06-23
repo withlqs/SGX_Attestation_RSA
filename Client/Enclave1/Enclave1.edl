@@ -37,6 +37,14 @@ enclave {
             public uint32_t test_enclave_to_enclave_call(sgx_enclave_id_t src_enclave_id, sgx_enclave_id_t dest_enclave_id);
             public uint32_t test_message_exchange(sgx_enclave_id_t src_enclave_id, sgx_enclave_id_t dest_enclave_id);
             public uint32_t test_close_session(sgx_enclave_id_t src_enclave_id, sgx_enclave_id_t dest_enclave_id);
+            public sgx_status_t rsa_verify(
+                [in, size=data_size] const uint8_t *p_data,
+				uint32_t data_size,						
+				[in, size=388] const sgx_rsa3072_public_key_t *p_public,
+				[in, size=384] const sgx_rsa3072_signature_t *p_signature,
+				[out, size=4] sgx_rsa_result_t *p_result
+            );
+		
     };
     
 };
